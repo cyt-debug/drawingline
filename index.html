@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>畫線小練習｜Line Tracing Practice</title>
+<style>
+  :root { color-scheme: dark; --bg:#000; --panel:#151515; --text:#fff; --accent:#ffe600; --guide:#ffe600; --trace:#00e5ff; --border:#777; --button:#ffe600; --buttonText:#000; --muted:#dedede; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:Arial,Helvetica,sans-serif; }
+  body { min-height:100dvh; }
+  body.theme-yellow { --bg:#000; --panel:#151515; --text:#fff; --accent:#ffe600; --guide:#ffe600; --trace:#00e5ff; --border:#aaa; --button:#ffe600; --buttonText:#000; --muted:#eee; }
+  body.theme-green { --bg:#000; --panel:#101810; --text:#fff; --accent:#84ff5d; --guide:#84ff5d; --trace:#fff; --border:#8cbf80; --button:#84ff5d; --buttonText:#000; --muted:#eee; }
+  body.theme-white { --bg:#fff; --panel:#f0f0f0; --text:#000; --accent:#000; --guide:#000; --trace:#005bff; --border:#333; --button:#000; --buttonText:#fff; --muted:#222; color-scheme:light; }
+  body.theme-blue { --bg:#001a42; --panel:#092b5b; --text:#fff; --accent:#ffe600; --guide:#ffe600; --trace:#00ffff; --border:#b3d4ff; --button:#ffe600; --buttonText:#000; --muted:#e7f0ff; }
+  button, input, select { font:inherit; }
+  button { min-height:52px; border:3px solid var(--accent); border-radius:12px; padding:10px 18px; font-weight:800; cursor:pointer; background:var(--button); color:var(--buttonText); touch-action:manipulation; }
+  button.secondary { color:var(--text); background:transparent; border-color:var(--border); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:4px solid #ff7b00; outline-offset:3px; }
+  button:disabled { opacity:.55; cursor:not-allowed; }
+  .app-header { display:flex; gap:12px; align-items:center; justify-content:space-between; padding:12px clamp(12px,3vw,28px); border-bottom:2px solid var(--border); background:var(--bg); }
+  .brand { font-weight:900; font-size:clamp(19px,3vw,28px); line-height:1.15; }
+  .brand small { display:block; font-size:14px; margin-top:3px; font-weight:600; color:var(--muted); }
+  .header-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .header-actions button { min-height:46px; padding:8px 14px; }
+  main { max-width:1250px; margin:0 auto; padding:14px clamp(10px,2.5vw,26px) 24px; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .instruction { text-align:center; font-size:clamp(22px,3.4vw,34px); font-weight:900; margin:6px 0 12px; line-height:1.35; }
+  .sub-instruction { text-align:center; font-size:clamp(16px,2.3vw,21px); color:var(--muted); margin:0 0 12px; }
+  .canvas-wrap { width:100%; height:clamp(330px,62dvh,650px); min-height:300px; border:3px solid var(--border); border-radius:18px; overflow:hidden; background:var(--bg); touch-action:none; position:relative; }
+  #traceCanvas { display:block; width:100%; height:100%; touch-action:none; }
+  .activity-actions { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin:14px 0 10px; }
+  .activity-actions button { min-width:150px; font-size:clamp(18px,2.4vw,23px); }
+  .status { text-align:center; font-size:clamp(17px,2.5vw,22px); font-weight:800; min-height:30px; margin:8px 0; }
+  .settings-title { font-size:clamp(26px,4vw,36px); font-weight:900; margin:6px 0 16px; }
+  .settings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+  .setting-card { border:2px solid var(--border); border-radius:16px; background:var(--panel); padding:16px; min-width:0; }
+  .setting-card h3 { font-size:22px; margin:0 0 14px; }
+  .field { margin:0 0 16px; }
+  .field:last-child { margin-bottom:0; }
+  .field label, .field .field-label { display:block; font-size:18px; font-weight:800; margin-bottom:8px; }
+  .field input[type="range"] { width:100%; min-height:38px; accent-color:var(--accent); }
+  .field input[type="text"], .field input[type="number"], .field select { width:100%; min-height:50px; border:2px solid var(--border); border-radius:10px; color:var(--text); background:var(--bg); padding:8px 10px; }
+  body.theme-white .field input[type="text"], body.theme-white .field input[type="number"], body.theme-white .field select { background:#fff; }
+  .field input[type="file"] { max-width:100%; color:var(--text); font-size:16px; }
+  .field input[type="color"] { width:86px; height:50px; padding:3px; border:2px solid var(--border); border-radius:10px; background:var(--bg); cursor:pointer; }
+  .pen-color-preview { display:inline-block; width:100px; height:14px; margin-left:10px; border:2px solid var(--border); border-radius:999px; vertical-align:middle; }
+  .level-note { border:2px solid var(--border); border-radius:12px; padding:10px 14px; margin:0 0 12px; text-align:center; font-size:16px; font-weight:800; color:var(--muted); }
+  .checkline { display:flex; align-items:center; gap:12px; font-weight:700; font-size:18px; min-height:44px; }
+  .checkline input { width:26px; height:26px; accent-color:var(--accent); }
+  .help { font-size:15px; line-height:1.5; color:var(--muted); margin:7px 0 0; }
+  .save-row { display:flex; flex-wrap:wrap; gap:12px; margin-top:16px; }
+  .save-row button { flex:1; }
+  .reward-wrap { min-height:65dvh; display:flex; flex-direction:column; gap:16px; align-items:center; justify-content:center; text-align:center; padding:18px; }
+  .reward-emoji { font-size:clamp(70px,16vw,150px); line-height:1.1; }
+  .reward-title { font-size:clamp(32px,6vw,58px); font-weight:900; }
+  .reward-text { font-size:clamp(20px,3vw,28px); }
+  #youtubeFrame { width:min(100%,640px); aspect-ratio:16/9; border:3px solid var(--border); border-radius:14px; background:#111; }
+  .hidden { display:none !important; }
+  .footnote { font-size:14px; color:var(--muted); text-align:center; margin-top:14px; line-height:1.45; }
+  @media (max-width:700px) {
+    .app-header { align-items:flex-start; }
+    .header-actions { max-width:46%; }
+    .header-actions button { min-width:0; padding:7px 10px; font-size:16px; }
+    .settings-grid { grid-template-columns:1fr; }
+    .canvas-wrap { height:clamp(320px,58dvh,560px); }
+    main { padding-top:10px; }
+  }
+  @media (orientation:landscape) and (max-height:520px) {
+    .canvas-wrap { height:58dvh; min-height:220px; }
+    .instruction { margin:3px 0 6px; font-size:22px; }
+    .sub-instruction { margin-bottom:6px; }
+    .activity-actions { margin:8px 0 4px; }
+  }
+</style>
+</head>
+<body class="theme-yellow">
+<header class="app-header">
+  <div class="brand">畫線小練習 <small>Line Tracing Practice</small></div>
+  <nav class="header-actions" aria-label="主要功能">
+    <button id="goActivity" type="button">開始練習</button>
+    <button id="goSettings" type="button" class="secondary">教師設定</button>
+  </nav>
+</header>
+<main>
+  <section id="activityPanel" class="panel active" aria-label="畫線練習">
+    <p class="level-note" id="levelBadge">第一級：拖動圓點 1 到 2</p>
+    <h1 class="instruction" id="promptText">拖動綠色圓點 1，到紅色圓點 2。</h1>
+    <p class="sub-instruction" id="subPrompt">用手指沿著線畫。</p>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="traceCanvas" aria-label="畫線區域：由起點沿線畫到終點"></canvas>
+    </div>
+    <div class="activity-actions">
+      <button id="resetButton" type="button" class="secondary">再試一次</button>
+      <button id="speakButton" type="button" class="secondary">聽指示</button>
+    </div>
+    <div class="status" id="statusText" role="status" aria-live="polite">請觸碰綠色圓點 1，開始畫線。</div>
+  </section>
+
+  <section id="settingsPanel" class="panel" aria-label="教師設定">
+    <h1 class="settings-title">教師設定</h1>
+    <div class="settings-grid">
+      <div class="setting-card">
+        <h3>練習及畫線設定</h3>
+        <div class="field">
+          <label for="levelSelect">練習級別</label>
+          <select id="levelSelect">
+            <option value="0">第零級：沿線拖動圓點 1 到 2</option>
+            <option value="1">第一級：沿著提示線畫</option>
+            <option value="2">第二級：拖動圓點 1 到 2（沒有提示線）</option>
+            <option value="3">第三級：由 1 畫到 2（沒有提示線）</option>
+          </select>
+          <p class="help">第零級：圓點沿提示線移動；第一級：沿提示線畫；第二級：拖動圓點但不顯示提示線；第三級：自由畫線。</p>
+        </div>
+        <div class="field">
+          <label for="lengthRange">線的長度：<span id="lengthValue">60%</span></label>
+          <input id="lengthRange" type="range" min="30" max="90" step="10" value="60">
+          <p class="help">數值越大，線越長。</p>
+        </div>
+        <div class="field">
+          <label for="directionSelect">畫線方向</label>
+          <select id="directionSelect">
+            <option value="right">左 → 右</option>
+            <option value="left">右 → 左</option>
+            <option value="down">上 → 下</option>
+            <option value="up">下 → 上</option>
+            <option value="downRight">左上 → 右下</option>
+            <option value="upLeft">右下 → 左上</option>
+            <option value="upRight">左下 → 右上</option>
+            <option value="downLeft">右上 → 左下</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="thicknessRange">線的粗幼：<span id="thicknessValue">22</span></label>
+          <input id="thicknessRange" type="range" min="10" max="38" step="2" value="22">
+        </div>
+        <div class="field">
+          <label for="themeSelect">畫面顏色</label>
+          <select id="themeSelect">
+            <option value="yellow">黑底黃線（高對比）</option>
+            <option value="green">黑底綠線</option>
+            <option value="white">白底黑線</option>
+            <option value="blue">深藍底黃線</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="penColorPreset">畫筆顏色</label>
+          <select id="penColorPreset">
+            <option value="cyan">鮮青色</option>
+            <option value="white">白色</option>
+            <option value="pink">亮粉紅</option>
+            <option value="orange">橙色</option>
+            <option value="red">紅色</option>
+            <option value="blue">藍色</option>
+            <option value="green">亮綠色</option>
+            <option value="yellow">黃色</option>
+            <option value="black">黑色</option>
+            <option value="custom">自訂顏色</option>
+          </select>
+          <label for="penColorCustom" style="margin-top:10px">自訂顏色</label>
+          <input id="penColorCustom" type="color" value="#00e5ff" aria-label="選擇自訂畫筆顏色">
+          <span class="pen-color-preview" id="penColorPreview" aria-hidden="true"></span>
+          <p class="help">畫筆顏色會用於第一級的畫線痕跡和第三級的自由畫線。</p>
+        </div>
+        <label class="checkline"><input id="voiceCheck" type="checkbox" checked> 讀出廣東話指示</label>
+      </div>
+
+      <div class="setting-card">
+        <h3>音樂獎勵</h3>
+        <div class="field">
+          <label for="rewardType">獎勵音樂來源</label>
+          <select id="rewardType">
+            <option value="audio">選擇音訊檔案（建議）</option>
+            <option value="youtube">YouTube 影片片段</option>
+          </select>
+        </div>
+        <div id="audioSettings">
+          <div class="field">
+            <label for="audioFile">選擇音訊檔案</label>
+            <input id="audioFile" type="file" accept="audio/*">
+            <p class="help" id="audioFileName">尚未選擇音訊檔案。</p>
+          </div>
+          <div class="field">
+            <label for="audioStart">音訊開始位置（秒）</label>
+            <input id="audioStart" type="number" min="0" max="3600" step="1" value="0">
+          </div>
+        </div>
+        <div id="youtubeSettings" class="hidden">
+          <div class="field">
+            <label for="youtubeUrl">YouTube 網址</label>
+            <input id="youtubeUrl" type="text" inputmode="url" placeholder="https://www.youtube.com/watch?v=...">
+            <p class="help">網頁會嵌入影片片段，不會下載歌曲。影片必須容許嵌入。</p>
+          </div>
+          <div class="field">
+            <label for="youtubeStart">片段開始位置（秒）</label>
+            <input id="youtubeStart" type="number" min="0" max="3600" step="1" value="0">
+          </div>
+        </div>
+        <div class="field">
+          <label for="rewardSeconds">播放時間（秒）</label>
+          <input id="rewardSeconds" type="number" min="3" max="30" step="1" value="8">
+          <p class="help">建議先設定 5–8 秒。每次完成練習，音樂會由上次停止的位置繼續，不會每次由頭播放。重新練習時音樂會暫停，下一次完成後接着播放。iPad 可能需要按一次「播放音樂」。</p>
+        </div>
+      </div>
+    </div>
+    <div class="save-row">
+      <button id="saveSettings" type="button">儲存設定</button>
+      <button id="backToActivity" type="button" class="secondary">返回練習</button>
+    </div>
+    <p id="settingsStatus" class="status" role="status" aria-live="polite"></p>
+    <p class="footnote">提示：設定會儲存在此瀏覽器。基於安全限制，重新開啟網頁後，音訊檔案通常需要重新選取。</p>
+  </section>
+
+  <section id="rewardPanel" class="panel" aria-label="完成獎勵">
+    <div class="reward-wrap">
+      <div class="reward-emoji" aria-hidden="true">🌟🎵</div>
+      <div class="reward-title">完成啦！</div>
+      <div class="reward-text" id="rewardMessage">你到達終點了！音樂獎勵開始啦！音樂播放後會自動返回練習。</div>
+      <audio id="rewardAudio" class="hidden" preload="auto"></audio>
+      <iframe id="youtubeFrame" class="hidden" title="YouTube 音樂獎勵" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      <div class="activity-actions">
+        <button id="playRewardButton" type="button">播放音樂（如未自動播放）</button>
+      </div>
+      <div id="rewardStatus" class="status" role="status" aria-live="polite">太棒了！</div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  'use strict';
+  var defaults = { level: 1, length: 60, direction: 'right', thickness: 22, theme: 'yellow', penColor: '#00e5ff', voice: true, rewardType: 'audio', audioStart: 0, youtubeStart: 0, rewardSeconds: 8, youtubeUrl: '' };
+  var penColorMap = { cyan:'#00e5ff', white:'#ffffff', pink:'#ff00d4', orange:'#ff7b00', red:'#ff3131', blue:'#2d6bff', green:'#39ff14', yellow:'#ffe600', black:'#111111' };
+  var settings = Object.assign({}, defaults);
+  var chosenAudioUrl = null;
+  var chosenAudioName = '';
+  var line = null;
+  var isDrawing = false;
+  var completed = false;
+  var lastPoint = null;
+  var dragPosition = null;
+  var strokeDistance = 0;
+  var maxProgress = 0;
+  var rewardStopTimer = null;
+  // Keep playback positions across attempts so reward music does not restart each time.
+  var loadedAudioUrl = null;
+  var loadedYoutubeId = '';
+  var youtubeElapsedSeconds = 0;
+  var youtubePlaybackStartedAt = 0;
+  var youtubePlaybackBudget = 0;
+  var youtubeSessionActive = false;
+  var canvas = document.getElementById('traceCanvas');
+  var ctx = canvas.getContext('2d');
+  var canvasWrap = document.getElementById('canvasWrap');
+  var activityPanel = document.getElementById('activityPanel');
+  var settingsPanel = document.getElementById('settingsPanel');
+  var rewardPanel = document.getElementById('rewardPanel');
+  var statusText = document.getElementById('statusText');
+  var promptText = document.getElementById('promptText');
+  var subPrompt = document.getElementById('subPrompt');
+  var rewardAudio = document.getElementById('rewardAudio');
+  var youtubeFrame = document.getElementById('youtubeFrame');
+
+  function safeReadSettings() {
+    try {
+      var savedV2 = localStorage.getItem('lineTracingSettingsV2');
+      if (savedV2) {
+        settings = Object.assign({}, defaults, JSON.parse(savedV2));
+      } else {
+        var savedV1 = localStorage.getItem('lineTracingSettingsV1');
+        if (savedV1) {
+          var legacy = JSON.parse(savedV1);
+          settings = Object.assign({}, defaults, legacy);
+          // Preserve the old exercise meaning after swapping Levels 1 and 2.
+          var oldLevel = parseInt(legacy.level, 10);
+          settings.level = oldLevel === 1 ? 2 : (oldLevel === 2 ? 1 : 3);
+          localStorage.setItem('lineTracingSettingsV2', JSON.stringify(settings));
+        }
+      }
+    } catch (e) { settings = Object.assign({}, defaults); }
+    var parsedLevel = parseInt(settings.level, 10);
+    settings.level = clamp(Number.isFinite(parsedLevel) ? parsedLevel : defaults.level, 0, 3);
+    settings.length = clamp(Number(settings.length) || defaults.length, 30, 90);
+    settings.thickness = clamp(Number(settings.thickness) || defaults.thickness, 10, 38);
+    settings.rewardSeconds = clamp(Number(settings.rewardSeconds) || defaults.rewardSeconds, 3, 30);
+    settings.audioStart = Math.max(0, Number(settings.audioStart) || 0);
+    settings.youtubeStart = Math.max(0, Number(settings.youtubeStart) || 0);
+    if (!['right','left','down','up','downRight','upLeft','upRight','downLeft'].includes(settings.direction)) settings.direction = defaults.direction;
+    if (!['yellow','green','white','blue'].includes(settings.theme)) settings.theme = defaults.theme;
+    if (typeof settings.penColor !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(settings.penColor)) settings.penColor = defaults.penColor;
+    if (!['audio','youtube'].includes(settings.rewardType)) settings.rewardType = defaults.rewardType;
+  }
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+  function applyTheme() { document.body.className = 'theme-' + settings.theme; }
+  function colorPresetFor(hex) {
+    var keys = Object.keys(penColorMap);
+    for (var i = 0; i < keys.length; i++) if (penColorMap[keys[i]].toLowerCase() === String(hex).toLowerCase()) return keys[i];
+    return 'custom';
+  }
+  function updatePenColorPreview() {
+    var input = document.getElementById('penColorCustom');
+    document.getElementById('penColorPreview').style.backgroundColor = input.value || defaults.penColor;
+  }
+  function populateSettings() {
+    document.getElementById('levelSelect').value = settings.level;
+    document.getElementById('lengthRange').value = settings.length;
+    document.getElementById('lengthValue').textContent = settings.length + '%';
+    document.getElementById('directionSelect').value = settings.direction;
+    document.getElementById('thicknessRange').value = settings.thickness;
+    document.getElementById('thicknessValue').textContent = settings.thickness;
+    document.getElementById('themeSelect').value = settings.theme;
+    document.getElementById('penColorCustom').value = settings.penColor;
+    document.getElementById('penColorPreset').value = colorPresetFor(settings.penColor);
+    updatePenColorPreview();
+    document.getElementById('voiceCheck').checked = !!settings.voice;
+    document.getElementById('rewardType').value = settings.rewardType;
+    document.getElementById('audioStart').value = settings.audioStart;
+    document.getElementById('youtubeStart').value = settings.youtubeStart;
+    document.getElementById('rewardSeconds').value = settings.rewardSeconds;
+    document.getElementById('youtubeUrl').value = settings.youtubeUrl || '';
+    document.getElementById('audioFileName').textContent = chosenAudioName || '尚未選擇音訊檔案。';
+    toggleRewardSettings();
+  }
+  function readSettingsFromForm() {
+    var selectedLevel = parseInt(document.getElementById('levelSelect').value, 10);
+    settings.level = clamp(Number.isFinite(selectedLevel) ? selectedLevel : defaults.level, 0, 3);
+    settings.length = clamp(Number(document.getElementById('lengthRange').value) || 60, 30, 90);
+    settings.direction = document.getElementById('directionSelect').value;
+    settings.thickness = clamp(Number(document.getElementById('thicknessRange').value) || 22, 10, 38);
+    settings.theme = document.getElementById('themeSelect').value;
+    settings.penColor = document.getElementById('penColorCustom').value || defaults.penColor;
+    settings.voice = document.getElementById('voiceCheck').checked;
+    settings.rewardType = document.getElementById('rewardType').value;
+    settings.audioStart = Math.max(0, Number(document.getElementById('audioStart').value) || 0);
+    settings.youtubeStart = Math.max(0, Number(document.getElementById('youtubeStart').value) || 0);
+    settings.rewardSeconds = clamp(Number(document.getElementById('rewardSeconds').value) || 8, 3, 30);
+    settings.youtubeUrl = document.getElementById('youtubeUrl').value.trim();
+  }
+  function saveSettings(showMessage) {
+    readSettingsFromForm();
+    applyTheme();
+    try { localStorage.setItem('lineTracingSettingsV2', JSON.stringify(settings)); } catch (e) { /* still usable without storage */ }
+    populateSettings();
+    resetTask();
+    resizeCanvas();
+    if (showMessage) document.getElementById('settingsStatus').textContent = '設定已套用！';
+  }
+  function toggleRewardSettings() {
+    var type = document.getElementById('rewardType').value;
+    document.getElementById('audioSettings').classList.toggle('hidden', type !== 'audio');
+    document.getElementById('youtubeSettings').classList.toggle('hidden', type !== 'youtube');
+  }
+  function showPanel(name) {
+    activityPanel.classList.toggle('active', name === 'activity');
+    settingsPanel.classList.toggle('active', name === 'settings');
+    rewardPanel.classList.toggle('active', name === 'reward');
+    if (name === 'activity') { resizeCanvas(); }
+    if (name === 'settings') { document.getElementById('settingsStatus').textContent = ''; }
+    if (name !== 'reward') stopReward();
+  }
+  function directionVector(name) {
+    var v = {
+      right:[1,0], left:[-1,0], down:[0,1], up:[0,-1],
+      downRight:[Math.SQRT1_2,Math.SQRT1_2], upLeft:[-Math.SQRT1_2,-Math.SQRT1_2],
+      upRight:[Math.SQRT1_2,-Math.SQRT1_2], downLeft:[-Math.SQRT1_2,Math.SQRT1_2]
+    }[name] || [1,0];
+    return {x:v[0], y:v[1]};
+  }
+  function computeLine() {
+    var w = canvas.clientWidth || canvasWrap.clientWidth || 600;
+    var h = canvas.clientHeight || canvasWrap.clientHeight || 400;
+    var margin = Math.max(50, settings.thickness * 2.2);
+    var maxW = Math.max(100, w - margin * 2);
+    var maxH = Math.max(100, h - margin * 2);
+    var v = directionVector(settings.direction);
+    var maxLength;
+    if (Math.abs(v.x) < 0.01) maxLength = maxH;
+    else if (Math.abs(v.y) < 0.01) maxLength = maxW;
+    else maxLength = Math.min(maxW / Math.abs(v.x), maxH / Math.abs(v.y));
+    var length = maxLength * settings.length / 100;
+    var cx = w / 2, cy = h / 2;
+    return { a:{x:cx-v.x*length/2,y:cy-v.y*length/2}, b:{x:cx+v.x*length/2,y:cy+v.y*length/2}, v:v, length:length, w:w, h:h, startRadius:Math.max(30,settings.thickness*1.5), tolerance:Math.max(28,settings.thickness*1.35) };
+  }
+  function palette() {
+    var style = getComputedStyle(document.body);
+    return { bg:style.getPropertyValue('--bg').trim() || '#000', text:style.getPropertyValue('--text').trim() || '#fff', guide:style.getPropertyValue('--guide').trim() || '#ffe600', trace:style.getPropertyValue('--trace').trim() || '#00ffff' };
+  }
+  function drawEndpoint(p, number, isStart, colors, labelOverride) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(24,settings.thickness*1.25),0,Math.PI*2);
+    ctx.fillStyle = isStart ? '#32ef70' : '#ff4d4d'; ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.stroke();
+    ctx.fillStyle = '#000'; ctx.font = '900 27px Arial, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(number),p.x,p.y+1);
+    ctx.font = '900 17px Arial, sans-serif'; ctx.fillStyle = colors.text;
+    var labelY = p.y - Math.max(29,settings.thickness*1.25) - 12;
+    if (labelY < 24) labelY = p.y + Math.max(29,settings.thickness*1.25) + 22;
+    ctx.fillText(labelOverride || (isStart ? '開始' : '終點'),p.x,labelY);
+    ctx.restore();
+  }
+  function drawScene() {
+    if (!ctx) return;
+    var w = canvas.clientWidth || 600, h = canvas.clientHeight || 400;
+    var dpr = window.devicePixelRatio || 1;
+    if (canvas.width !== Math.round(w*dpr) || canvas.height !== Math.round(h*dpr)) {
+      canvas.width = Math.round(w*dpr); canvas.height = Math.round(h*dpr);
+    }
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    var colors = palette();
+    ctx.clearRect(0,0,w,h); ctx.fillStyle = colors.bg; ctx.fillRect(0,0,w,h);
+    line = computeLine();
+    var dragLevel = settings.level === 0 || settings.level === 2;
+    if (dragLevel && !dragPosition) dragPosition = {x:line.a.x,y:line.a.y};
+    ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+    // Levels 0 and 1 show a guide line. Level 0's marker is constrained to it.
+    if (settings.level === 0 || settings.level === 1) {
+      ctx.strokeStyle = colors.guide; ctx.lineWidth = settings.thickness; ctx.globalAlpha = 0.98;
+      ctx.beginPath(); ctx.moveTo(line.a.x,line.a.y); ctx.lineTo(line.b.x,line.b.y); ctx.stroke();
+    }
+    // Levels 1 and 3 use a drawing trail; drag-marker levels do not.
+    if (lastPoint && !completed && (settings.level === 1 || settings.level === 3)) {
+      ctx.strokeStyle = settings.penColor || colors.trace;
+      ctx.lineWidth = settings.level === 1 ? Math.max(8,settings.thickness*0.55) : Math.max(10,settings.thickness*0.7);
+      ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.moveTo(lastPoint.path[0].x,lastPoint.path[0].y);
+      for (var i=1;i<lastPoint.path.length;i++) ctx.lineTo(lastPoint.path[i].x,lastPoint.path[i].y);
+      ctx.stroke();
+    }
+    ctx.restore();
+    if (dragLevel) {
+      drawEndpoint(line.b,2,false,colors,'目標');
+      drawEndpoint(dragPosition || line.a,1,true,colors,'拖動 1');
+    } else {
+      drawEndpoint(line.a,1,true,colors);
+      drawEndpoint(line.b,2,false,colors);
+    }
+  }
+  function resizeCanvas() {
+    if (activityPanel.classList.contains('active')) {
+      if (!isDrawing && (settings.level === 0 || settings.level === 2)) dragPosition = null;
+      drawScene();
+    }
+  }
+  function pointFromEvent(e) {
+    var r = canvas.getBoundingClientRect();
+    return {x:e.clientX-r.left,y:e.clientY-r.top};
+  }
+  function distance(a,b) { var dx=a.x-b.x,dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
+  function projectedProgress(p) {
+    var dx=p.x-line.a.x, dy=p.y-line.a.y;
+    return (dx*line.v.x + dy*line.v.y) / line.length;
+  }
+  function isNearPath(p) {
+    var dx=p.x-line.a.x,dy=p.y-line.a.y;
+    var along=dx*line.v.x+dy*line.v.y;
+    var clamped=clamp(along,0,line.length);
+    var q={x:line.a.x+line.v.x*clamped,y:line.a.y+line.v.y*clamped};
+    return distance(p,q) <= line.tolerance;
+  }
+  function pointOnGuideLine(p) {
+    var dx=p.x-line.a.x, dy=p.y-line.a.y;
+    var along=clamp(dx*line.v.x+dy*line.v.y,0,line.length);
+    return {x:line.a.x+line.v.x*along,y:line.a.y+line.v.y*along};
+  }
+  function speak(text) {
+    if (!settings.voice || !('speechSynthesis' in window)) return;
+    try { window.speechSynthesis.cancel(); var utterance = new SpeechSynthesisUtterance(text); utterance.lang='zh-HK'; utterance.rate=0.85; window.speechSynthesis.speak(utterance); } catch(e) {}
+  }
+  function taskPrompt() {
+    var badge = document.getElementById('levelBadge');
+    if (settings.level === 0) {
+      badge.textContent = '第零級：沿線拖動圓點 1 到 2';
+      promptText.textContent = '按住綠色圓點 1，沿著線拖到紅色圓點 2。';
+      subPrompt.textContent = '圓點只會沿著線移動。';
+    } else if (settings.level === 1) {
+      badge.textContent = '第一級：沿著提示線畫';
+      promptText.textContent = '由綠色圓點 1 開始，沿住線畫到圓點 2。';
+      subPrompt.textContent = '用手指沿著提示線畫。';
+    } else if (settings.level === 2) {
+      badge.textContent = '第二級：拖動圓點 1 到 2';
+      promptText.textContent = '拖動綠色圓點 1，到紅色圓點 2。';
+      subPrompt.textContent = '畫面沒有提示線，將圓點拖到目標。';
+    } else {
+      badge.textContent = '第三級：沒有提示線';
+      promptText.textContent = '由綠色圓點 1 開始，畫到紅色圓點 2。';
+      subPrompt.textContent = '用手指由 1 畫到 2。畫面不會顯示提示線。';
+    }
+  }
+  function taskPromptPreview() {
+    var selected = parseInt(document.getElementById('levelSelect').value, 10);
+    var badge = document.getElementById('levelBadge');
+    if (selected === 0) {
+      badge.textContent='第零級：沿線拖動圓點 1 到 2'; promptText.textContent='按住綠色圓點 1，沿著線拖到紅色圓點 2。'; subPrompt.textContent='圓點只會沿著線移動。';
+    } else if (selected === 1) {
+      badge.textContent='第一級：沿著提示線畫'; promptText.textContent='由綠色圓點 1 開始，沿住線畫到圓點 2。'; subPrompt.textContent='用手指沿著提示線畫。';
+    } else if (selected === 2) {
+      badge.textContent='第二級：拖動圓點 1 到 2'; promptText.textContent='拖動綠色圓點 1，到紅色圓點 2。'; subPrompt.textContent='畫面沒有提示線，將圓點拖到目標。';
+    } else {
+      badge.textContent='第三級：沒有提示線'; promptText.textContent='由綠色圓點 1 開始，畫到紅色圓點 2。'; subPrompt.textContent='用手指由 1 畫到 2。畫面不會顯示提示線。';
+    }
+  }
+  function getSpokenInstruction() {
+    if (settings.level === 0) return '按住綠色圓點一，沿住提示線拖到紅色圓點二。圓點會沿住條線移動。';
+    if (settings.level === 1) return '由綠色圓點一開始，沿住提示線畫到圓點二。';
+    if (settings.level === 2) return '拖動綠色圓點一，到紅色圓點二。畫面沒有提示線。';
+    return '由綠色圓點一開始，畫到紅色圓點二。畫面沒有提示線。';
+  }
+  function resetTask() {
+    isDrawing=false; completed=false; lastPoint=null; dragPosition=null; strokeDistance=0; maxProgress=0;
+    stopReward(); taskPrompt();
+    if (settings.level === 0) statusText.textContent='請沿著線拖動綠色圓點 1，到紅色圓點 2。';
+    else if (settings.level === 1) statusText.textContent='請由綠色圓點 1 開始，沿提示線畫到圓點 2。';
+    else if (settings.level === 2) statusText.textContent='請拖動綠色圓點 1，到紅色圓點 2。';
+    else statusText.textContent='請由綠色圓點 1 開始，畫到紅色圓點 2。';
+    drawScene();
+  }
+  function onPointerDown(e) {
+    if (completed || !activityPanel.classList.contains('active')) return;
+    var p=pointFromEvent(e);
+    var dragLevel = settings.level === 0 || settings.level === 2;
+    if (dragLevel) {
+      if (distance(p,dragPosition || line.a) > Math.max(34,settings.thickness*1.8)) {
+        statusText.textContent='請按住綠色圓點 1，再拖到紅色圓點 2。';
+        return;
+      }
+      isDrawing=true;
+      try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
+      if (settings.voice) speak(settings.level === 0 ? '按住綠色圓點一，沿住提示線拖到紅色圓點二。' : '按住綠色圓點一，拖到紅色圓點二。');
+      statusText.textContent=settings.level === 0 ? '做得好！沿著線繼續拖動圓點。' : '做得好！繼續拖動圓點。';
+      drawScene(); e.preventDefault(); return;
+    }
+    if (distance(p,line.a) > line.startRadius + 10) {
+      statusText.textContent='請由綠色圓點 1 開始。';
+      return;
+    }
+    isDrawing=true; maxProgress=0; strokeDistance=distance(line.a,p);
+    lastPoint={path:[{x:line.a.x,y:line.a.y},p]};
+    try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
+    if (settings.voice) speak(settings.level === 1 ? '開始畫線。沿住提示線畫到終點。' : '開始畫線，由圓點一畫到圓點二。');
+    statusText.textContent=settings.level === 1 ? '做得好！繼續沿住提示線畫。' : '做得好！繼續畫到圓點 2。';
+    drawScene(); e.preventDefault();
+  }
+  function onPointerMove(e) {
+    if (!isDrawing || completed) return;
+    var p=pointFromEvent(e);
+    if (settings.level === 0 || settings.level === 2) {
+      // Level 0 is constrained to the guide line; Level 2 is free to move anywhere.
+      dragPosition = settings.level === 0 ? pointOnGuideLine(p) : p;
+      var targetRadius = Math.max(28,settings.thickness*1.25);
+      if (distance(dragPosition,line.b) <= targetRadius) {
+        dragPosition={x:line.b.x,y:line.b.y};
+        drawScene();
+        finishTask();
+      } else drawScene();
+      e.preventDefault(); return;
+    }
+    var previous=lastPoint.path[lastPoint.path.length-1];
+    strokeDistance += distance(previous,p);
+    lastPoint.path.push(p);
+    if (lastPoint.path.length > 3000) lastPoint.path.splice(1,500);
+    if (settings.level === 1 && isNearPath(p)) maxProgress=Math.max(maxProgress,clamp(projectedProgress(p),0,1));
+    drawScene();
+    if (settings.level === 1 && distance(p,line.b) <= line.startRadius && maxProgress >= 0.78) finishTask();
+    if (settings.level === 3 && distance(p,line.b) <= line.startRadius && strokeDistance >= line.length*0.55) finishTask();
+    e.preventDefault();
+  }
+  function onPointerUp(e) {
+    if (!isDrawing || completed) return;
+    var p=pointFromEvent(e);
+    if (settings.level === 0 || settings.level === 2) {
+      dragPosition = settings.level === 0 ? pointOnGuideLine(p) : p;
+      isDrawing=false;
+      if (distance(dragPosition,line.b) <= Math.max(28,settings.thickness*1.25)) {
+        dragPosition={x:line.b.x,y:line.b.y};
+        finishTask();
+      } else {
+        statusText.textContent=settings.level === 0
+          ? '再試一次：沿著線把圓點 1 拖到紅色圓點 2。'
+          : '再試一次：把綠色圓點 1 拖到紅色圓點 2。';
+        drawScene();
+      }
+      e.preventDefault(); return;
+    }
+    var previous=lastPoint.path[lastPoint.path.length-1];
+    strokeDistance += distance(previous,p);
+    lastPoint.path.push(p);
+    if (settings.level === 1 && isNearPath(p)) maxProgress=Math.max(maxProgress,clamp(projectedProgress(p),0,1));
+    var reached = settings.level === 1
+      ? distance(p,line.b) <= line.startRadius && maxProgress >= 0.72
+      : distance(p,line.b) <= line.startRadius && strokeDistance >= line.length*0.55;
+    if (reached) finishTask();
+    else {
+      isDrawing=false;
+      statusText.textContent=settings.level === 1
+        ? '再試一次：由綠色圓點 1 開始，沿住提示線畫到圓點 2。'
+        : '再試一次：由綠色圓點 1 開始，畫到紅色圓點 2。';
+      drawScene();
+    }
+    e.preventDefault();
+  }
+  function finishTask() {
+    if (completed) return;
+    completed=true; isDrawing=false;
+    if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch (e) {} }
+    showPanel('reward');
+    document.getElementById('rewardStatus').textContent='完成啦！';
+    startReward();
+  }
+  function returnToExerciseAfterReward() {
+    if (rewardStopTimer) { clearTimeout(rewardStopTimer); rewardStopTimer = null; }
+    try { rewardAudio.pause(); } catch (e) {}
+    closeYoutubeSession();
+    showPanel('activity');
+    resetTask();
+  }
+  function scheduleRewardReturn(delayMs) {
+    if (rewardStopTimer) clearTimeout(rewardStopTimer);
+    rewardStopTimer = setTimeout(function () {
+      rewardStopTimer = null;
+      returnToExerciseAfterReward();
+    }, delayMs);
+  }
+
+  function extractYoutubeId(raw) {
+    if (!raw) return '';
+    try {
+      var u=new URL(raw.trim());
+      if (u.hostname==='youtu.be' || u.hostname.endsWith('.youtu.be')) return u.pathname.split('/').filter(Boolean)[0] || '';
+      if (u.hostname.includes('youtube.com') || u.hostname.includes('youtube-nocookie.com')) {
+        if (u.searchParams.get('v')) return u.searchParams.get('v');
+        var parts=u.pathname.split('/').filter(Boolean);
+        var idx=parts.findIndex(function(p){return p==='embed'||p==='shorts'||p==='live';});
+        if (idx>=0 && parts[idx+1]) return parts[idx+1];
+      }
+    } catch(e) {}
+    return '';
+  }
+  function closeYoutubeSession() {
+    // The YouTube iframe is cross-origin, so track elapsed playback time to resume
+    // at the next segment on the next successful attempt.
+    if (youtubeSessionActive) {
+      var elapsed = Math.max(0, (Date.now() - youtubePlaybackStartedAt) / 1000);
+      youtubeElapsedSeconds += Math.min(elapsed, youtubePlaybackBudget || settings.rewardSeconds);
+      youtubeSessionActive = false;
+      youtubePlaybackStartedAt = 0;
+      youtubePlaybackBudget = 0;
+    }
+    youtubeFrame.src='about:blank';
+    youtubeFrame.classList.add('hidden');
+  }
+  function stopReward() {
+    if (rewardStopTimer) { clearTimeout(rewardStopTimer); rewardStopTimer=null; }
+    // Pausing preserves currentTime. The next reward resumes from this position.
+    try { rewardAudio.pause(); } catch(e) {}
+    closeYoutubeSession();
+  }
+  function prepareRewardAudio() {
+    if (!chosenAudioUrl) return false;
+    if (loadedAudioUrl !== chosenAudioUrl) {
+      rewardAudio.pause();
+      rewardAudio.src = chosenAudioUrl;
+      rewardAudio.load();
+      loadedAudioUrl = chosenAudioUrl;
+      var requestedStart = Math.max(0, settings.audioStart);
+      var seekToStart = function() {
+        if (loadedAudioUrl !== chosenAudioUrl) return;
+        var maxStart = Number.isFinite(rewardAudio.duration) ? Math.max(0, rewardAudio.duration - 0.1) : requestedStart;
+        try { rewardAudio.currentTime = Math.min(requestedStart, maxStart); } catch(e) {}
+      };
+      if (rewardAudio.readyState >= 1) seekToStart();
+      else rewardAudio.addEventListener('loadedmetadata', seekToStart, {once:true});
+    } else if (rewardAudio.ended) {
+      // Only restart from the configured start if the selected song has actually ended.
+      var restartAt = Math.max(0, settings.audioStart);
+      if (Number.isFinite(rewardAudio.duration)) restartAt = Math.min(restartAt, Math.max(0, rewardAudio.duration - 0.1));
+      try { rewardAudio.currentTime = restartAt; } catch(e) {}
+    }
+    return true;
+  }
+  function startYoutubeReward() {
+    var id = extractYoutubeId(settings.youtubeUrl);
+    if (!id) {
+      document.getElementById('rewardStatus').textContent='未設定有效的 YouTube 網址，請檢查教師設定。畫面會自動返回練習。';
+      scheduleRewardReturn(settings.rewardSeconds * 1000);
+      return;
+    }
+    if (id !== loadedYoutubeId) {
+      loadedYoutubeId = id;
+      youtubeElapsedSeconds = 0;
+    }
+    var seconds = settings.rewardSeconds;
+    var start = Math.max(0, Math.floor(settings.youtubeStart + youtubeElapsedSeconds));
+    var end = start + seconds;
+    youtubePlaybackStartedAt = Date.now();
+    youtubePlaybackBudget = seconds;
+    youtubeSessionActive = true;
+    youtubeFrame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?start='+start+'&end='+end+'&autoplay=1&playsinline=1&controls=1&rel=0';
+    youtubeFrame.classList.remove('hidden');
+    document.getElementById('rewardStatus').textContent='如音樂沒有自動播放，請按「播放音樂」或影片中的播放鍵。下次完成時會接着播放下一段。';
+    scheduleRewardReturn(seconds*1000+2500);
+  }
+  function startReward() {
+    stopReward();
+    var seconds=settings.rewardSeconds;
+    if (settings.rewardType==='youtube') {
+      startYoutubeReward();
+      return;
+    }
+    if (!chosenAudioUrl) {
+      document.getElementById('rewardStatus').textContent='請教師到「教師設定」選擇音訊檔案。畫面會在短暫提示後自動返回練習。';
+      scheduleRewardReturn(seconds * 1000);
+      return;
+    }
+    closeYoutubeSession();
+    if (!prepareRewardAudio()) return;
+    document.getElementById('rewardStatus').textContent='音樂正在播放；下次完成練習時會由這次停止的位置繼續。';
+    var playPromise;
+    try { playPromise=rewardAudio.play(); } catch(e) { playPromise=null; }
+    if (playPromise && typeof playPromise.catch==='function') playPromise.catch(function(){ document.getElementById('rewardStatus').textContent='瀏覽器未能自動播放，請按「播放音樂」繼續獎勵。'; });
+    scheduleRewardReturn(seconds*1000);
+  }
+  function playRewardManually() {
+    if (settings.rewardType==='youtube') {
+      var id=extractYoutubeId(settings.youtubeUrl);
+      if (!id) { document.getElementById('rewardStatus').textContent='請返回教師設定，輸入有效的 YouTube 網址。'; return; }
+      // This button is also the user-gesture fallback when iPad blocks autoplay.
+      // Reload at the tracked offset so the fallback starts near the saved position.
+      closeYoutubeSession();
+      if (id !== loadedYoutubeId) { loadedYoutubeId=id; youtubeElapsedSeconds=0; }
+      startYoutubeReward();
+    } else {
+      if (!chosenAudioUrl) { document.getElementById('rewardStatus').textContent='請教師先選擇音訊檔案。'; return; }
+      if (rewardAudio.src && loadedAudioUrl === chosenAudioUrl && !rewardAudio.paused && !rewardAudio.ended) {
+        document.getElementById('rewardStatus').textContent='音樂正在播放中。';
+        return;
+      }
+      closeYoutubeSession();
+      if (!prepareRewardAudio()) return;
+      var pp=rewardAudio.play();
+      if (pp && pp.catch) pp.catch(function(){ document.getElementById('rewardStatus').textContent='音訊未能播放，請重新選擇檔案或使用 YouTube。'; });
+      scheduleRewardReturn(settings.rewardSeconds*1000);
+      document.getElementById('rewardStatus').textContent='音樂已由上次停止的位置繼續播放。';
+    }
+  }
+
+  document.getElementById('goActivity').addEventListener('click',function(){ if (settingsPanel.classList.contains('active')) saveSettings(false); showPanel('activity'); });
+  document.getElementById('goSettings').addEventListener('click',function(){ showPanel('settings'); });
+  document.getElementById('backToActivity').addEventListener('click',function(){ saveSettings(false); showPanel('activity'); });
+  document.getElementById('saveSettings').addEventListener('click',function(){ saveSettings(true); });
+  document.getElementById('resetButton').addEventListener('click',resetTask);
+  document.getElementById('speakButton').addEventListener('click',function(){ speak(getSpokenInstruction()); });
+  document.getElementById('playRewardButton').addEventListener('click',playRewardManually);
+  document.getElementById('levelSelect').addEventListener('change',function(){ taskPromptPreview(); });
+  document.getElementById('lengthRange').addEventListener('input',function(){document.getElementById('lengthValue').textContent=this.value+'%';});
+  document.getElementById('thicknessRange').addEventListener('input',function(){document.getElementById('thicknessValue').textContent=this.value;});
+  document.getElementById('rewardType').addEventListener('change',toggleRewardSettings);
+  document.getElementById('themeSelect').addEventListener('change',function(){ document.body.className='theme-'+this.value; if (activityPanel.classList.contains('active')) drawScene(); });
+  document.getElementById('penColorPreset').addEventListener('change',function(){ if (penColorMap[this.value]) document.getElementById('penColorCustom').value=penColorMap[this.value]; updatePenColorPreview(); });
+  document.getElementById('penColorCustom').addEventListener('input',function(){ document.getElementById('penColorPreset').value='custom'; updatePenColorPreview(); });
+  document.getElementById('audioFile').addEventListener('change',function(e){
+    var file=e.target.files && e.target.files[0];
+    if (!file) return;
+    if (chosenAudioUrl) { try { URL.revokeObjectURL(chosenAudioUrl); } catch(err) {} }
+    chosenAudioUrl=URL.createObjectURL(file); chosenAudioName=file.name;
+    document.getElementById('audioFileName').textContent='已選擇：'+file.name;
+  });
+  rewardAudio.addEventListener('ended', function () {
+    if (rewardPanel.classList.contains('active')) returnToExerciseAfterReward();
+  });
+  canvas.addEventListener('pointerdown',onPointerDown);
+  canvas.addEventListener('pointermove',onPointerMove);
+  canvas.addEventListener('pointerup',onPointerUp);
+  canvas.addEventListener('pointercancel',function(){ if (isDrawing) { isDrawing=false; if (settings.level === 0 || settings.level === 2) dragPosition=null; statusText.textContent='請再試一次。'; drawScene(); } });
+  window.addEventListener('resize',resizeCanvas);
+  window.addEventListener('orientationchange',function(){setTimeout(resizeCanvas,150);});
+
+  safeReadSettings(); applyTheme(); populateSettings(); taskPrompt();
+  // Initial render after the browser has applied layout dimensions.
+  requestAnimationFrame(function(){ resizeCanvas(); });
+})();
+</script>
+</body>
+</html>
