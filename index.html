@@ -44,7 +44,8 @@
   .field input[type="range"] { width:100%; min-height:38px; accent-color:var(--accent); }
   .field input[type="text"], .field input[type="number"], .field select { width:100%; min-height:50px; border:2px solid var(--border); border-radius:10px; color:var(--text); background:var(--bg); padding:8px 10px; }
   body.theme-white .field input[type="text"], body.theme-white .field input[type="number"], body.theme-white .field select { background:#fff; }
-  .field input[type="file"] { max-width:100%; color:var(--text); font-size:16px; }
+  .field input[type="file"] { display:block; width:100%; max-width:100%; min-height:58px; border:2px solid var(--border); border-radius:10px; padding:8px; color:var(--text); background:var(--bg); font-size:16px; }
+  .field input[type="file"]::file-selector-button, .field input[type="file"]::-webkit-file-upload-button { min-height:40px; margin-right:10px; padding:8px 12px; border:2px solid var(--accent); border-radius:8px; background:var(--button); color:var(--buttonText); font:inherit; font-weight:800; }
   .field input[type="color"] { width:86px; height:50px; padding:3px; border:2px solid var(--border); border-radius:10px; background:var(--bg); cursor:pointer; }
   .pen-color-preview { display:inline-block; width:100px; height:14px; margin-left:10px; border:2px solid var(--border); border-radius:999px; vertical-align:middle; }
   .level-note { border:2px solid var(--border); border-radius:12px; padding:10px 14px; margin:0 0 12px; text-align:center; font-size:16px; font-weight:800; color:var(--muted); }
@@ -178,9 +179,10 @@
         </div>
         <div id="audioSettings">
           <div class="field">
-            <label for="audioFile">選擇音訊檔案</label>
-            <input id="audioFile" type="file" accept="audio/*">
-            <p class="help" id="audioFileName">尚未選擇音訊檔案。</p>
+            <label for="audioFile">選擇音訊檔案（MP3、M4A、WAV 等）</label>
+            <input id="audioFile" type="file" accept="application/octet-stream,.mp3,.m4a,.aac,.wav,.aiff,.aif,.caf,.ogg,.oga,.opus,.webm" aria-describedby="audioFileName audioFileHelp">
+            <p class="help" id="audioFileName" role="status" aria-live="polite">尚未選擇音訊檔案。</p>
+            <p class="help" id="audioFileHelp">iPad：請先把 MP3 放在「檔案」App（例如「下載項目」、「我的 iPad」或 iCloud Drive），再按上方選擇檔案。Apple Music 內的歌曲通常不能直接匯入。若按了沒有反應，請用 Safari 真正開啟這個 HTML 網頁，不要使用「檔案」App 的預覽畫面。</p>
           </div>
           <div class="field">
             <label for="audioStart">音訊開始位置（秒）</label>
@@ -210,7 +212,7 @@
       <button id="backToActivity" type="button" class="secondary">返回練習</button>
     </div>
     <p id="settingsStatus" class="status" role="status" aria-live="polite"></p>
-    <p class="footnote">提示：設定會儲存在此瀏覽器。基於安全限制，重新開啟網頁後，音訊檔案通常需要重新選取。</p>
+    <p class="footnote">提示：設定會儲存在此瀏覽器。基於安全限制，重新開啟網頁後，音訊檔案通常需要重新選取。iPad 如無法開啟選檔視窗，請確認網頁是在 Safari 中開啟，而不是「檔案」App 的快速預覽。</p>
   </section>
 
   <section id="rewardPanel" class="panel" aria-label="完成獎勵">
@@ -760,9 +762,22 @@
   document.getElementById('audioFile').addEventListener('change',function(e){
     var file=e.target.files && e.target.files[0];
     if (!file) return;
+    var audioExtensions = /\.(mp3|m4a|aac|wav|aiff|aif|caf|ogg|oga|opus|webm)$/i;
+    if (file.type && file.type.indexOf('audio/') !== 0 && !audioExtensions.test(file.name)) {
+      document.getElementById('audioFileName').textContent='這個檔案看來不是支援的音訊格式。請選擇 MP3、M4A 或 WAV 檔案。';
+      e.target.value='';
+      return;
+    }
     if (chosenAudioUrl) { try { URL.revokeObjectURL(chosenAudioUrl); } catch(err) {} }
-    chosenAudioUrl=URL.createObjectURL(file); chosenAudioName=file.name;
-    document.getElementById('audioFileName').textContent='已選擇：'+file.name;
+    try {
+      chosenAudioUrl=URL.createObjectURL(file);
+      chosenAudioName=file.name;
+      var sizeMB = file.size ? (file.size / (1024 * 1024)).toFixed(1) : '';
+      document.getElementById('audioFileName').textContent='已選擇：'+file.name+(sizeMB ? '（'+sizeMB+' MB）' : '')+'。請按「儲存設定」，再完成一次練習測試音樂。';
+    } catch(err) {
+      chosenAudioUrl=null; chosenAudioName='';
+      document.getElementById('audioFileName').textContent='無法讀取這個檔案。請把音訊存到「檔案」App 後再試，或用 Safari 重新開啟網頁。';
+    }
   });
   rewardAudio.addEventListener('ended', function () {
     if (rewardPanel.classList.contains('active')) returnToExerciseAfterReward();
